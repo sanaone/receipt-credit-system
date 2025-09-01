@@ -1,4 +1,4 @@
-
+from tabulate import tabulate
 import json
 
 # Load customers from JSON file, or create a default list if file not found
@@ -13,7 +13,15 @@ def load_customers():
             {"Name": "Sanath", "Balance": 0},
             {"Name": "Paul", "Balance": 0}
         ]
-
+def reset_customers():
+    customers = [
+        {"Name": "John", "Balance": 0},
+        {"Name": "Kumar", "Balance": 0},
+        {"Name": "Sanath", "Balance": 0},
+        {"Name": "Paul", "Balance": 0}
+    ]
+    save_customers(customers)
+    return "Customer data reset to default."
 # Save customers to JSON file
 def save_customers(customers):
     with open("customers.json", "w") as f:
@@ -51,10 +59,28 @@ def view_balance(name):
         if customer["Name"]== name:
             return f"Current balance of {customer['Name']} is {customer['Balance']}"
     return f"Customer {name} not found"
-
+def list_all_balances(pretty=False):
+    """Return balances for all customers"""
+    customers = load_customers()
+    if pretty:
+        table = [(c["Name"], c["Balance"]) for c in customers]
+        return tabulate(table, headers=["Name", "Balance"], tablefmt="grid")
+    else:
+        return customers
 # Test it
-print(deposit("John", 1))
-print(deposit("Kumar", 1.50))
-print(deposit("Sanath", 2.00))
-print(deposit("Paul", 2.50))
-print(Customers)
+print(reset_customers())
+
+# Add some deposits
+deposit("John", 100)
+deposit("Kumar", 200)
+
+# View individual balance
+print(view_balance("John"))
+print(view_balance("Paul"))   # should be 0
+
+# View all balances (plain)
+print("All balances (plain):", list_all_balances())
+
+# View all balances (pretty)
+print("All balances (pretty):")
+print(list_all_balances(pretty=True))
