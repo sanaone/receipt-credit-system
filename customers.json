@@ -1,18 +1,18 @@
 [
     {
         "Name": "John",
-        "Balance": 300
+        "Balance": 402
     },
     {
         "Name": "Kumar",
-        "Balance": 0
+        "Balance": 153.0
     },
     {
         "Name": "Sanath",
-        "Balance": 0
+        "Balance": 204.0
     },
     {
         "Name": "Paul",
-        "Balance": 0
+        "Balance": 255.0
     }
 ]

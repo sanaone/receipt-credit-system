@@ -1,3 +1,4 @@
+
 import json
 
 # Load customers from JSON file, or create a default list if file not found
@@ -39,7 +40,21 @@ def withdraw(name, amount):
                 return f"Insufficient balance for {customer['Name']}. Current balance is {customer['Balance']}"
     return (f"Customer {name} not found")
 
+def view_balance(name):
+    """Return the balance for a single customer"""
+    customers = load_customers()
+    for customer in customers:
+        if customer["Name"] == name:
+            return f"{customer['Name']}'s balance is {customer['Balance']}"
+    return f"Customer {name} not found"
+    for customer in Customers:
+        if customer["Name"]== name:
+            return f"Current balance of {customer['Name']} is {customer['Balance']}"
+    return f"Customer {name} not found"
+
 # Test it
-print(deposit("John", 50))
-print(withdraw("Kumar", 30))
+print(deposit("John", 1))
+print(deposit("Kumar", 1.50))
+print(deposit("Sanath", 2.00))
+print(deposit("Paul", 2.50))
 print(Customers)
