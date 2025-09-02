@@ -21,13 +21,12 @@ def reset_customers():
         {"Name": "Paul", "Balance": 0}
     ]
     save_customers(customers)
+    Customers =load_customers()
     return "Customer data reset to default."
 # Save customers to JSON file
 def save_customers(customers):
     with open("customers.json", "w") as f:
         json.dump(customers, f, indent=4)
-
-Customers = load_customers()
 
 def deposit(name, amount):
     for customer in Customers:
@@ -55,31 +54,36 @@ def view_balance(name):
         if customer["Name"] == name:
             return f"{customer['Name']}'s balance is {customer['Balance']}"
     return f"Customer {name} not found"
-    for customer in Customers:
-        if customer["Name"]== name:
-            return f"Current balance of {customer['Name']} is {customer['Balance']}"
-    return f"Customer {name} not found"
+     
 def list_all_balances(pretty=False):
     """Return balances for all customers"""
-    customers = load_customers()
+    Customers = load_customers()
     if pretty:
-        table = [(c["Name"], c["Balance"]) for c in customers]
+        table = [(c["Name"], c["Balance"]) for c in Customers]
         return tabulate(table, headers=["Name", "Balance"], tablefmt="grid")
     else:
-        return customers
+        return Customers
+Customers =load_customers()
+
+receipt_text = """
+Customer: John
+Items:
+- Apples: 50
+- Bread: 20
+Total: 70
+"""
+def parse_receipt(text):
+    lines = text.strip().split("\n")
+    customerName = lines[0].split(": ")[1]
+    total = int(lines[-1].split(": ")[1])
+    return customerName, total
+
+name, amount = parse_receipt(receipt_text)
+print(f"Parsed receipt - Customer: {name}, Amount: {amount}")
+deposit(name, amount)
+
 # Test it
-print(reset_customers())
 
-# Add some deposits
-deposit("John", 100)
-deposit("Kumar", 200)
-
-# View individual balance
-print(view_balance("John"))
-print(view_balance("Paul"))   # should be 0
-
-# View all balances (plain)
-print("All balances (plain):", list_all_balances())
 
 # View all balances (pretty)
 print("All balances (pretty):")
