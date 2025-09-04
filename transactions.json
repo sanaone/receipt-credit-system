@@ -1,0 +1,42 @@
+[
+    {
+        "Name": "John",
+        "Amount": 70,
+        "Type": "Deposit"
+    },
+    {
+        "Name": "John",
+        "Amount": 80,
+        "Type": "Deposit"
+    },
+    {
+        "Name": "Kumar",
+        "Amount": 10,
+        "Type": "Deposit"
+    },
+    {
+        "Name": "Kumar",
+        "Amount": 10,
+        "Type": "Deposit"
+    },
+    {
+        "Name": "Kumar",
+        "Amount": 10,
+        "Type": "Deposit"
+    },
+    {
+        "Name": "Kumar",
+        "Amount": 10,
+        "Type": "Deposit"
+    },
+    {
+        "Name": "Kumar",
+        "Amount": 10,
+        "Type": "Deposit"
+    },
+    {
+        "Name": "Kumar",
+        "Amount": 10,
+        "Type": "Deposit"
+    }
+]
