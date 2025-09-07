@@ -1,6 +1,7 @@
 from tabulate import tabulate
 import json
 import re
+import datetime
 # Load customers from JSON file, or create a default list if file not found
 def load_customers():
     try:
@@ -21,7 +22,7 @@ def reset_customers():
         {"Name": "Paul", "Balance": 0}
     ]
     save_customers(customers)
-    Customers =load_customers()
+     
     return "Customer data reset to default."
 # Save customers to JSON file
 def save_customers(customers):
@@ -35,7 +36,7 @@ def deposit(name, amount):
             save_customers(Customers)   # save after deposit
             log_transaction(name,amount,"Deposit")
             
-            return f"Deposit of {amount} successful. New balance of {customer['Name']} is {customer['Balance']}"
+            return f"Deposit of RS. {amount} successful. New balance of {customer['Name']} is {customer['Balance']}"
     return f"Customer {name} not found"
 
 def withdraw(name, amount):
@@ -44,7 +45,7 @@ def withdraw(name, amount):
             if customer["Balance"]>= amount:
                 customer["Balance"] -= amount
                 save_customers(Customers)  # save after withdrawal
-                log_transaction(name,amount,"Withdraw")
+                log_transaction(name,-amount,"Withdraw")
                 return f"Withdrawal of {amount} successful. New balance of {customer['Name']} is {customer['Balance']}"
             
             else:
@@ -106,11 +107,16 @@ def log_transaction(name, amount, transaction_type):
 
     except FileNotFoundError:
         transactions = []
-    transactions.append({"Name": name, "Amount": amount, "Type": transaction_type})
+    transactions.append({
+        "Name": name,
+        "Amount": amount,
+        "Type": transaction_type,
+        "Timestamp": __import__("datetime").datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    })
     with open("transactions.json", "w") as f:
         json.dump(transactions, f, indent=4)
 
-def view_transactions(name=None, pretty=None):
+def view_transactions(name=None, pretty=None, Type_Transaction=None):
     try:
         with open("transactions.json", "r") as f:
             transactions = json.load(f)
@@ -119,18 +125,88 @@ def view_transactions(name=None, pretty=None):
     
     if name:
         transactions = [t for t in transactions if t["Name"] == name]
+    if Type_Transaction:
+        transactions = [t for t in transactions if t["Type"] == Type_Transaction]
+    if not transactions:
+        return "No matching transactions found."
     
     if pretty:
-        table = [(t["Name"], t["Amount"], t["Type"]) for t in transactions]
-        
-        print("DEBUG table:", table)
-        return tabulate(table, headers=["Name", "Amount", "Type"], tablefmt="grid")
+        table = [
+            (t.get("Name", "N/A"),
+             t.get("Amount", "N/A"),
+             t.get("Type", "N/A"),
+             t.get("Timestamp", "N/A"))   # fallback if missing
+            for t in transactions
+        ]
+        return tabulate(table, headers=["Name", "Amount", "Type", "Timestamp"], tablefmt="grid")
     else:
         return transactions
      
+def filter_by_date(transaction_s, start_date=None, end_date=None):
+    """Filter Transactions by date range.
+    Dates should be in YYYY-MM-DD format."""
+    filtered = []
+    for t in transaction_s:
+        t["Timestamp"]= t.get("Timestamp", "2025-09-05 00:00:00")  # Handle missing timestamp
+        t_date = datetime.datetime.strptime(t["Timestamp"], "%Y-%m-%d %H:%M:%S").date()
+        if start_date:
+            start = datetime.datetime.strptime(start_date, "%Y-%m-%d").date()  # FIXED
+            if t_date < start:
+                continue
+        if end_date:
+            end = datetime.datetime.strptime(end_date, "%Y-%m-%d").date()
+            if t_date > end:
+                continue
+        filtered.append(t)
+    return filtered
 
-print(process_receipt(receipt_text)) 
-print(view_transactions(pretty=True))
+def view_transactions_per_customer(pretty=False):
+    #Load transactions
+    try:
+        with open("transactions.json", "r") as f:
+            transactions= json.load(f)
+    except FileNotFoundError:
+        return "No transactions yet."
+    # Track balances per customer
+    customer_balances  ={}
+    table =[]
+    transactions = filter_by_date(transactions, start_date="2025-09-04", end_date="2025-09-05")
+    for t in transactions:
+        
+        name = t["Name"]
+        amount = t["Amount"]
+        t["Timestamp"]= t.get("Timestamp", "2025-09-06 00:00:00")  # Handle missing timestamp
+        customer_balances[name] = customer_balances.get(name, 0) + amount
+        table.append((
+            t["Name"],
+            t["Amount"],
+            t["Type"],
+            t["Timestamp"],
+            customer_balances[name]
+        ))
+
+    if pretty:
+        return tabulate(table,headers=["Name","Amount","Type", "Timestamp","Balance"],tablefmt="grid")
+    else:
+        return table
+    
+#print(process_receipt(receipt_text)) 
+
+print(reset_customers())
+deposit("John", 100)
+withdraw("John", 40)
+deposit("Kumar", 200)
+deposit("John", 50)
+withdraw("Kumar", 30)
+
+print("Transactions with per-customer running balance:")
+print(view_transactions_per_customer(True))
+
+#print("All transactions with Timestamps:")
+ 
+
+#print(view_transactions(pretty=True))
+#print(view_transactions(pretty=True))
 # View all balances (pretty)
-print("All balances (pretty):")
-print(list_all_balances(pretty=True))
+#print("All balances (pretty):")
+#print(list_all_balances(pretty=True))
