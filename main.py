@@ -2,6 +2,7 @@ from tabulate import tabulate
 import json
 import re
 import datetime
+Customers =[]
 # Load customers from JSON file, or create a default list if file not found
 def load_customers():
     try:
@@ -15,47 +16,49 @@ def load_customers():
             {"Name": "Paul", "Balance": 0}
         ]
 def reset_customers():
-    customers = [
+    Customers = [
         {"Name": "John", "Balance": 0},
         {"Name": "Kumar", "Balance": 0},
         {"Name": "Sanath", "Balance": 0},
         {"Name": "Paul", "Balance": 0}
     ]
-    save_customers(customers)
+    save_customers(Customers)
      
     return "Customer data reset to default."
 # Save customers to JSON file
 def save_customers(customers):
     with open("customers.json", "w") as f:
         json.dump(customers, f, indent=4)
-
+        print("Customers saved." )
+ 
 def deposit(name, amount):
-    for customer in Customers:
+    customers = load_customers()  # Always load fresh
+    for customer in customers:
         if customer["Name"] == name:
             customer["Balance"] += amount
-            save_customers(Customers)   # save after deposit
-            log_transaction(name,amount,"Deposit")
             
+            save_customers(customers)
+            log_transaction(name, amount, "Deposit")
             return f"Deposit of RS. {amount} successful. New balance of {customer['Name']} is {customer['Balance']}"
     return f"Customer {name} not found"
 
 def withdraw(name, amount):
-    for customer in Customers:
-        if customer["Name"]== name:
-            if customer["Balance"]>= amount:
+    customers = load_customers()  # Always load fresh
+    for customer in customers:
+        if customer["Name"] == name:
+            if customer["Balance"] >= amount:
                 customer["Balance"] -= amount
-                save_customers(Customers)  # save after withdrawal
-                log_transaction(name,-amount,"Withdraw")
+                save_customers(customers)
+                log_transaction(name, -amount, "Withdraw")
                 return f"Withdrawal of {amount} successful. New balance of {customer['Name']} is {customer['Balance']}"
-            
             else:
                 return f"Insufficient balance for {customer['Name']}. Current balance is {customer['Balance']}"
-    return (f"Customer {name} not found")
+    return f"Customer {name} not found"
 
 def view_balance(name):
     """Return the balance for a single customer"""
-    customers = load_customers()
-    for customer in customers:
+    Customers = load_customers()
+    for customer in Customers:
         if customer["Name"] == name:
             return f"{customer['Name']}'s balance is {customer['Balance']}"
     return f"Customer {name} not found"
@@ -116,7 +119,7 @@ def log_transaction(name, amount, transaction_type):
     with open("transactions.json", "w") as f:
         json.dump(transactions, f, indent=4)
 
-def view_transactions(name=None, pretty=None, Type_Transaction=None):
+def view_transactions(name=None, pretty=None, Type_Transaction=None, Start_Date=None, End_Date=None):
     try:
         with open("transactions.json", "r") as f:
             transactions = json.load(f)
@@ -127,6 +130,8 @@ def view_transactions(name=None, pretty=None, Type_Transaction=None):
         transactions = [t for t in transactions if t["Name"] == name]
     if Type_Transaction:
         transactions = [t for t in transactions if t["Type"] == Type_Transaction]
+    if Start_Date or End_Date:
+        transactions = filter_by_date(transactions, start_date=Start_Date, end_date=End_Date)
     if not transactions:
         return "No matching transactions found."
     
@@ -160,35 +165,62 @@ def filter_by_date(transaction_s, start_date=None, end_date=None):
         filtered.append(t)
     return filtered
 
-def view_transactions_per_customer(pretty=False):
-    #Load transactions
+def add_running_balance(transactions):
+    """Add running balance to each transaction record."""
+    balances = {}
+    updated_transactions = []
+    for t in transactions:
+        name = t.get("Name", "N/A")
+        amount = t.get("Amount", 0)
+
+        # Track per-customer running balance
+        balances[name] = balances.get(name, 0) + amount
+
+        # Create a copy with balance included
+        updated = t.copy()
+        updated["RunningBalance"] = balances[name]
+        updated_transactions.append(updated)
+
+    return updated_transactions
+
+
+def view_transactions(name=None, pretty=None, Type_Transaction=None, Start_Date=None, End_Date=None):
     try:
         with open("transactions.json", "r") as f:
-            transactions= json.load(f)
+            transactions = json.load(f)
     except FileNotFoundError:
         return "No transactions yet."
-    # Track balances per customer
-    customer_balances  ={}
-    table =[]
-    transactions = filter_by_date(transactions, start_date="2025-09-04", end_date="2025-09-05")
-    for t in transactions:
-        
-        name = t["Name"]
-        amount = t["Amount"]
-        t["Timestamp"]= t.get("Timestamp", "2025-09-06 00:00:00")  # Handle missing timestamp
-        customer_balances[name] = customer_balances.get(name, 0) + amount
-        table.append((
-            t["Name"],
-            t["Amount"],
-            t["Type"],
-            t["Timestamp"],
-            customer_balances[name]
-        ))
+# ✅ Always sort by Timestamp first
+    transactions = sorted(transactions, key=lambda t: t.get("Timestamp",""))
 
+    # Apply filters
+    if name:
+        transactions = [t for t in transactions if t.get("Name") == name]
+    if Type_Transaction:
+        transactions = [t for t in transactions if t.get("Type") == Type_Transaction]
+    if Start_Date or End_Date:
+        transactions = filter_by_date(transactions, start_date=Start_Date, end_date=End_Date)
+
+    if not transactions:
+        return "No matching transactions found."
+
+    # Add running balance here
+    transactions = add_running_balance(transactions)
+
+    # Pretty print or return raw
     if pretty:
-        return tabulate(table,headers=["Name","Amount","Type", "Timestamp","Balance"],tablefmt="grid")
+        table = [
+            (t.get("Name", "N/A"),
+             t.get("Amount", "N/A"),
+             t.get("Type", "N/A"),
+             t.get("Timestamp", "N/A"),
+             t.get("RunningBalance", "N/A"))
+            for t in transactions
+        ]
+        return tabulate(table, headers=["Name", "Amount", "Type", "Timestamp", "Running Balance"], tablefmt="grid")
     else:
-        return table
+        return transactions
+
     
 #print(process_receipt(receipt_text)) 
 
@@ -199,11 +231,12 @@ deposit("Kumar", 200)
 deposit("John", 50)
 withdraw("Kumar", 30)
 
-print("Transactions with per-customer running balance:")
-print(view_transactions_per_customer(True))
+#print("Transactions with per-customer running balance:")
+#print(view_transactions_per_customer(True))
 
 #print("All transactions with Timestamps:")
- 
+print("kumar's Deposits from 2025-09-01 to 2025-09-10 (pretty):")
+print(view_transactions(name="John", Type_Transaction=None, Start_Date="2025-09-01", End_Date="2025-09-10", pretty=True))
 
 #print(view_transactions(pretty=True))
 #print(view_transactions(pretty=True))
